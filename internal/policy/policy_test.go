@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"sdbx/internal/config"
+	"sdbx/internal/testutil"
 )
 
 type env struct {
@@ -18,6 +19,7 @@ func setup(t *testing.T) env {
 	root := t.TempDir()
 	root, _ = filepath.EvalSymlinks(root)
 	e := env{home: filepath.Join(root, "home"), ws: filepath.Join(root, "home", "proj"), tmp: filepath.Join(root, "sdbxtmp")}
+	testutil.IsolateConfigHome(t, e.home)
 	for _, d := range []string{e.ws, e.tmp, filepath.Join(e.home, ".ssh"), filepath.Join(e.home, ".cache", "tool"),
 		filepath.Join(e.ws, ".git", "hooks"), filepath.Join(e.ws, "sub", ".git"), filepath.Join(e.home, "bin")} {
 		os.MkdirAll(d, 0o755)

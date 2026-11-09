@@ -214,12 +214,29 @@ func TestFindWorkspaceAndLegacy(t *testing.T) {
 	}
 }
 
+func TestConfigHome(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", "")
+	if got := ConfigHome(home); got != filepath.Join(home, ".config") {
+		t.Fatalf("ohne XDG: %s", got)
+	}
+	xdg := filepath.Join(t.TempDir(), "xdg")
+	t.Setenv("XDG_CONFIG_HOME", xdg)
+	if got := ConfigHome(home); got != xdg {
+		t.Fatalf("mit XDG: %s", got)
+	}
+	if got := ProjectsDir(home); got != filepath.Join(xdg, "sdbx", "projects") {
+		t.Fatalf("ProjectsDir folgt XDG, nicht home: %s", got)
+	}
+}
+
 func TestProjectOverrideLoad(t *testing.T) {
 	home := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	ws := filepath.Join(home, "code", "app")
 	os.MkdirAll(filepath.Join(ws, ".git"), 0o755)
 	os.MkdirAll(filepath.Join(ws, "pkg"), 0o755)
-	pdir := filepath.Join(home, ".config", "sdbx", "projects")
+	pdir := ProjectsDir(home)
 	os.MkdirAll(pdir, 0o755)
 	write(t, pdir, "app.yaml", "version: 1\nproject: "+ws+"\nnetwork:\n  allow: [example.com]\n")
 	write(t, ws, "sdbx.yaml", "version: 1\nnetwork:\n  allow: [evil.com]\n") // Legacy, wird ignoriert

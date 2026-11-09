@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"sdbx/internal/config"
+	"sdbx/internal/testutil"
 )
 
 var fixed = func() time.Time { return time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC) }
@@ -26,6 +27,7 @@ func project(t *testing.T) (string, Env) {
 	os.WriteFile(filepath.Join(ws, ".git", "config"), []byte("[remote \"origin\"]\n\turl = git@github.com:a/b.git\n"), 0o644)
 	home := filepath.Join(root, "home")
 	os.MkdirAll(home, 0o755)
+	testutil.IsolateConfigHome(t, home)
 	return ws, Env{Cwd: ws, Home: home, Platform: "linux", Now: fixed, Environ: []string{"PATH=/nonexistent"}}
 }
 
@@ -36,6 +38,7 @@ func cfgPath(home, ws string) string {
 
 func TestProjectOverridePathCollision(t *testing.T) {
 	home := t.TempDir()
+	testutil.IsolateConfigHome(t, home)
 	a, b := filepath.Join(home, "x", "app"), filepath.Join(home, "y", "app")
 	os.MkdirAll(a, 0o755)
 	os.MkdirAll(b, 0o755)

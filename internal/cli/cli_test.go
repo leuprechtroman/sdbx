@@ -8,12 +8,15 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"sdbx/internal/testutil"
 )
 
 func testEnv(t *testing.T, cfg string) (Env, string) {
 	t.Helper()
 	root, _ := filepath.EvalSymlinks(t.TempDir())
 	home := filepath.Join(root, "home")
+	testutil.IsolateConfigHome(t, home)
 	ws := filepath.Join(home, "proj")
 	os.MkdirAll(filepath.Join(ws, ".git"), 0o755)
 	os.MkdirAll(filepath.Join(home, ".ssh"), 0o755)

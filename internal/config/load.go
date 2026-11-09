@@ -49,17 +49,25 @@ type LoadOptions struct {
 	ProjectsDir string // überschreibt ~/.config/sdbx/projects (Tests)
 }
 
+// ConfigHome liefert das Basisverzeichnis für die Nutzerkonfiguration
+// ($XDG_CONFIG_HOME oder <home>/.config). XDG_CONFIG_HOME gilt prozessweit und
+// unabhängig vom home-Argument – Tests mit gefälschtem Home müssen es selbst
+// auf <home>/.config setzen (siehe IsolateConfigHome).
+func ConfigHome(home string) string {
+	if x := os.Getenv("XDG_CONFIG_HOME"); x != "" {
+		return x
+	}
+	return filepath.Join(home, ".config")
+}
+
 // GlobalConfigPath liefert den Pfad der globalen Nutzerkonfiguration.
 func GlobalConfigPath(home string) string {
-	if x := os.Getenv("XDG_CONFIG_HOME"); x != "" {
-		return filepath.Join(x, "sdbx", "config.yaml")
-	}
-	return filepath.Join(home, ".config", "sdbx", "config.yaml")
+	return filepath.Join(ConfigHome(home), "sdbx", "config.yaml")
 }
 
 // ProjectsDir liefert das Verzeichnis der Projekt-Overrides.
 func ProjectsDir(home string) string {
-	return filepath.Join(filepath.Dir(GlobalConfigPath(home)), "projects")
+	return filepath.Join(ConfigHome(home), "sdbx", "projects")
 }
 
 // FindWorkspace liefert die Git-Wurzel unter start, sonst start selbst.

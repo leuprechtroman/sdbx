@@ -134,7 +134,13 @@ func (e *env) start(extraEnv []string, name string, args ...string) (*exec.Cmd, 
 	e.t.Helper()
 	cmd := exec.Command(name, args...)
 	cmd.Dir = e.ws
-	cmd.Env = append([]string{"HOME=" + e.home, "PATH=/usr/local/bin:/usr/bin:/bin", "LANG=C.UTF-8", "TMPDIR=/tmp"}, extraEnv...)
+	cmd.Env = append([]string{
+		"HOME=" + e.home,
+		"XDG_CONFIG_HOME=" + filepath.Join(e.home, ".config"),
+		"PATH=/usr/local/bin:/usr/bin:/bin",
+		"LANG=C.UTF-8",
+		"TMPDIR=/tmp",
+	}, extraEnv...)
 	if d := os.Getenv("GOCOVERDIR"); d != "" && name == sdbxBin {
 		cmd.Env = append(cmd.Env, "GOCOVERDIR="+d)
 	}
