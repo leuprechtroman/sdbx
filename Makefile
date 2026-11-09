@@ -16,8 +16,9 @@ test:
 escape:
 	go test -tags escape -count=1 -v ./test/escape/
 
+# Race-Detector braucht cgo; Builds bleiben statisch (CGO_ENABLED=0 oben).
 race:
-	go test -race ./...
+	CGO_ENABLED=1 go test -race ./...
 
 # Coverage aus Unit-Tests plus Ausbruchstests (instrumentiertes Binary); Prozesse in der Sandbox schreiben keine Daten
 cover:
