@@ -1,0 +1,34 @@
+# Node.js: npm, pnpm und yarn mit Registry-Zugriff
+version: 1
+filesystem:
+  write:
+    - ~/.npm
+    - ~/.cache/npm
+    - ~/.local/share/pnpm
+    - ~/Library/pnpm
+    - ~/.cache/pnpm
+    - ~/Library/Caches/pnpm
+    - ~/.cache/yarn
+    - ~/Library/Caches/Yarn
+    - ~/.yarn/berry
+    - ~/.cache/node-gyp
+    - ~/Library/Caches/node-gyp
+    - ~/.cache/ms-playwright
+    - ~/Library/Caches/ms-playwright
+network:
+  allow:
+    - registry.npmjs.org
+    - registry.yarnpkg.com
+    - repo.yarnpkg.com
+    - nodejs.org
+env:
+  passthrough:
+    - NODE_OPTIONS
+    - NVM_DIR
+    - NVM_BIN
+    - FNM_DIR
+    - FNM_MULTISHELL_PATH
+    - VOLTA_HOME
+    - npm_config_registry
+  set:
+    NODE_USE_ENV_PROXY: "1"

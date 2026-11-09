@@ -1,0 +1,16 @@
+# Rust: Cargo-Registry und Git-Cache (Toolchains bleiben schreibgeschützt)
+version: 1
+filesystem:
+  write:
+    - ~/.cargo/registry
+    - ~/.cargo/git
+network:
+  allow:
+    - crates.io
+    - static.crates.io
+    - index.crates.io
+env:
+  passthrough:
+    - CARGO_HOME
+    - RUSTUP_HOME
+    - RUSTUP_TOOLCHAIN

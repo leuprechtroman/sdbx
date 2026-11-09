@@ -1,0 +1,10 @@
+# Git über HTTPS: GitHub, GitLab und Bitbucket
+version: 1
+network:
+  allow:
+    - github.com
+    - api.github.com
+    - codeload.github.com
+    - "*.githubusercontent.com"
+    - gitlab.com
+    - bitbucket.org

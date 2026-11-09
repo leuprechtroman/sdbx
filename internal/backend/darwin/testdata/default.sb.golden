@@ -1,0 +1,76 @@
+(version 1)
+;; sdbx – erzeugtes Seatbelt-Profil. Nicht von Hand bearbeiten.
+(deny default)
+
+;; Prozesse
+(allow process-fork)
+(allow process-exec)
+;; stumm, weil der Aufräumer mit kill(-1) jeden Prozess des Nutzers anfragt
+(deny signal (with no-report))
+(allow signal (target same-sandbox))
+(allow process-info* (target same-sandbox))
+(allow sysctl-read)
+(allow user-preference-read)
+(allow iokit-open (iokit-registry-entry-class "RootDomainUserClient"))
+(allow ipc-posix-sem)
+(allow ipc-posix-shm*)
+(allow system-socket)
+(allow pseudo-tty)
+(allow file-ioctl)
+;; Terminal-Injection verhindern (Spec 7.3)
+(deny file-ioctl (ioctl-command TIOCSTI))
+
+;; Dateisystem: lesen
+(allow file-read*)
+
+;; Dateisystem: schreiben
+(allow file-write* (subpath (param "P0")))
+(allow file-write* (subpath (param "P1")))
+(allow file-write* (regex #"^/Users/r/\.cache/(.*/)?x(/.*)?$"))
+(allow file-read* file-write-data (literal "/dev/null") (literal "/dev/zero") (literal "/dev/tty") (literal "/dev/random") (literal "/dev/urandom") (literal "/dev/dtracehelper"))
+(allow file-read* file-write* (literal "/dev/ptmx"))
+(allow file-read* file-write-data (regex #"^/dev/ttys[0-9]+$"))
+(allow file-read* file-write-data (subpath "/dev/fd"))
+
+;; Schreibschutz (readonly, geschützte Pfade) – spätere Regeln gewinnen
+;; Hooks in jedem Repository im Workspace, auch in neuen; *.sample bleibt für git init/clone frei
+(deny file-write* (regex #"^/Users/r/proj/(.*/)?\.git/hooks/[^/]*(/.*)?$"))
+(allow file-write* (regex #"^/Users/r/proj/(.*/)?\.git/hooks/[^/]*\.sample(/.*)?$"))
+(deny file-write* (subpath (param "P2")))
+(deny file-write* (subpath (param "P3")))
+;; Elternverzeichnisse geschützter Pfade nicht umbenennen oder entfernen (sonst Umweg: mv .git .gitx)
+(deny file-write-unlink (literal (param "R0")))
+
+;; Sperren (deny gewinnt immer, Spec 5.2)
+(deny file-read* file-write* (subpath (param "P4")))
+(allow file-read* (literal (param "E0")))
+
+;; Netzwerk
+(allow network-outbound (remote ip "localhost:41234"))
+(allow network-outbound (remote ip "localhost:5432"))
+(allow network-bind (local ip "localhost:*"))
+(allow network-inbound (local ip "localhost:*"))
+
+;; Unix-Sockets: nur Workspace, privates Temp und Freigaben (Spec 7.1)
+(allow network-outbound (remote unix-socket (subpath (param "P0"))))
+(allow network-bind (local unix-socket (subpath (param "P0"))))
+(allow network-outbound (remote unix-socket (subpath (param "S0"))))
+(allow network-bind (local unix-socket (subpath (param "S0"))))
+(allow network-outbound (remote unix-socket (subpath (param "S1"))))
+(deny network-outbound (remote unix-socket (path-literal (param "S2"))))
+
+;; Mach-Services (Spec 7.4)
+(allow mach-lookup (global-name "com.apple.logd") (global-name "com.apple.system.notification_center") (global-name "com.apple.system.opendirectoryd.libinfo") (global-name "com.apple.system.opendirectoryd.membership") (global-name "com.apple.bsd.dirhelper") (global-name "com.apple.SystemConfiguration.configd") (global-name "com.apple.SystemConfiguration.DNSConfiguration") (global-name "com.apple.trustd.agent"))
+(deny mach-lookup (global-name "com.apple.analyticsd") (with no-report))
+
+;; Parameter
+;; P0=/Users/r/proj
+;; P1=/private/tmp
+;; P2=/Users/r/proj/.git/hooks
+;; P3=/Users/r/proj/vendor
+;; R0=/Users/r/proj/.git
+;; P4=/Users/r/.ssh
+;; E0=/Users/r/.ssh/known_hosts
+;; S0=/private/var/folders/x/T/sdbx-1
+;; S1=/private/tmp/cc-daemon-501/ab12cd34/control.sock
+;; S2=/private/tmp/codex-daemon-501/old

@@ -1,0 +1,21 @@
+# Go: Modul-Cache, Build-Cache und Modul-Proxy
+version: 1
+filesystem:
+  write:
+    - ~/go/pkg/mod
+    - ~/.cache/go-build
+    - ~/Library/Caches/go-build
+network:
+  allow:
+    - proxy.golang.org
+    - sum.golang.org
+env:
+  passthrough:
+    - GOPATH
+    - GOROOT
+    - GOFLAGS
+    - GOPROXY
+    - GOPRIVATE
+    - GONOSUMDB
+    - GOTOOLCHAIN
+    - CGO_ENABLED

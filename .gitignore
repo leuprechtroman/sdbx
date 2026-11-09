@@ -1,0 +1,7 @@
+/bin/
+/dist/
+/cover/
+*.test
+
+/.idea/
+/.vscode/

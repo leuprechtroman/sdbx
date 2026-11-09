@@ -1,0 +1,505 @@
+.Dd October 30, 2026
+.Dt SDBX 1
+.Os
+.Sh NAME
+.Nm sdbx
+.Nd OS-level sandbox for agents and tools
+.Sh SYNOPSIS
+.Nm
+.Cm run
+.Op Ar flags
+.Fl \-
+.Ar command
+.Op Ar arg ...
+.Nm
+.Ar command
+.Op Ar arg ...
+.Nm
+.Cm shell
+.Op Ar flags
+.Nm
+.Cm check
+.Op Ar flags
+.Nm
+.Cm policy
+.Op Ar flags
+.Op Fl \-format Cm yaml | json | seatbelt | bwrap
+.Nm
+.Cm explain
+.Op Ar flags
+.Ar path | host Ns Op : Ns Ar port
+.Nm
+.Cm learn
+.Op Ar flags
+.Fl \-
+.Ar command
+.Op Ar arg ...
+.Nm
+.Cm init
+.Op Ar init-flags
+.Nm
+.Cm doctor
+.Nm
+.Cm presets
+.Nm
+.Cm version
+.Sh DESCRIPTION
+.Nm
+runs a command inside an operating-system sandbox.
+It is meant for coding agents, package managers and build tools that
+should not get full access to your home directory, secrets and network.
+.Pp
+The sandbox has four goals:
+.Bl -bullet -compact
+.It
+Integrity: writes only in the workspace and in explicitly allowed paths.
+.It
+Confidentiality: no SSH keys, cloud credentials, browser profiles or
+secret environment variables.
+.It
+Network: outbound traffic only through a proxy with a domain allowlist.
+.It
+Persistence: no Git hooks, shell rc files, autostart entries,
+programs in
+.Pa ~/bin
+or
+.Pa ~/.local/bin ,
+and no changes to the sdbx configuration.
+.El
+.Pp
+On macOS
+.Nm
+uses Seatbelt
+.Pq Xr sandbox-exec 1 ,
+on Linux
+.Xr bwrap 1
+together with Landlock and seccomp.
+If a rule cannot be enforced on the platform,
+.Nm
+does not start
+.Pq fail-closed ,
+unless
+.Fl \-degraded
+is given.
+.Pp
+The workspace is the Git root of the current directory, otherwise the
+current directory.
+When a run ends,
+.Nm
+terminates every process created inside the sandbox, including detached ones
+.Pq Ic nohup , setsid .
+.Pp
+Messages printed by
+.Nm
+are currently in German.
+.Sh COMMANDS
+.Bl -tag -width Ds
+.It Cm run Oo Ar flags Oc Fl \- Ar command Op Ar arg ...
+Runs
+.Ar command
+in the sandbox.
+The command's exit code is passed through
+.Pq see Sx EXIT STATUS .
+.It Ar command Op Ar arg ...
+Short for
+.Nm
+.Cm run
+.Fl \-
+.Ar command ... ,
+provided
+.Ar command
+is not an sdbx command and is found in
+.Ev PATH .
+sdbx flags cannot be used in the short form.
+.It Cm shell Op Ar flags
+Starts
+.Ev SHELL
+.Pq or Pa /bin/sh
+in the sandbox.
+.It Cm check Op Ar flags
+Loads and validates the configuration, prints warnings and the matrix of
+rules enforceable on this platform.
+Starts nothing and creates nothing.
+.It Cm policy Oo Ar flags Oc Op Fl \-format Ar format
+Prints the resolved policy.
+.Ar format
+is
+.Cm yaml
+.Pq default ,
+.Cm json ,
+.Cm seatbelt
+.Pq the generated Seatbelt profile
+or
+.Cm bwrap
+.Pq the bwrap arguments .
+.It Cm explain Oo Ar flags Oc Ar path | host Ns Op : Ns Ar port
+Shows which rule applies to a path or network destination, and the file
+and line it comes from.
+.It Cm learn Oo Ar flags Oc Fl \- Ar command Op Ar arg ...
+Learning mode: runs the command, collects blocked accesses and suggests
+configuration entries.
+Nothing is written.
+.It Cm init Op Ar init-flags
+Creates a commented project configuration in
+.Pa ~/.config/sdbx/projects/ .
+A small TUI asks for anything not given as a flag; without a terminal,
+.Cm init
+aborts unless
+.Fl \-yes
+is given.
+See
+.Sx INIT FLAGS .
+.It Cm doctor
+Checks platform prerequisites
+.Pq sandbox-exec, bwrap, Landlock, user namespaces, cgroups .
+.It Cm presets
+Lists the built-in presets and integrations.
+.It Cm version
+Prints version, commit and the detected platform capabilities.
+.El
+.Sh FLAGS
+These apply to
+.Cm run ,
+.Cm shell ,
+.Cm check ,
+.Cm policy ,
+.Cm explain
+and
+.Cm learn .
+Flags marked
+.Dq repeatable
+may be given more than once.
+.Bl -tag -width Ds
+.It Fl c , Fl \-config Ar file
+Load
+.Ar file
+as the project override instead of looking one up.
+If it contains
+.Ic project: ,
+that sets the workspace.
+.It Fl \-no-global
+Ignore the global configuration.
+.It Fl w , Fl \-workspace Ar dir
+Override the workspace.
+.It Fl \-allow-write Ar path
+Additional writable path (repeatable).
+.It Fl \-allow-read Ar path
+Additional readable path (repeatable).
+.It Fl \-deny Ar path
+Additionally block a path (repeatable).
+.It Fl \-allow-domain Ar pattern
+Allow a domain, e.g.\&
+.Ql *.example.com
+or
+.Ql api.example.com:443
+(repeatable).
+.It Fl \-no-network
+No network.
+.It Fl \-integration Ar name Ns = Ns Ar value
+Configure an integration, e.g.\&
+.Ql clausona=ro
+or
+.Ql clausona.profiles=all
+(repeatable).
+.It Fl \-timeout Ar duration
+Time limit, e.g.\&
+.Ql 30m .
+The process tree then receives
+.Dv SIGTERM ,
+and
+.Dv SIGKILL
+after
+.Ic limits.kill_grace .
+.It Fl \-degraded
+Only warn about unenforceable rules instead of aborting.
+.It Fl \-log Ar file
+Write an audit log.
+.It Fl \-log-format Cm text | json
+Audit log format.
+.It Fl q , Fl \-quiet
+Suppress warnings.
+.It Fl v , Fl \-verbose
+More verbose output.
+.It Fl \-dry-run
+Only print the launch description, run nothing.
+.It Fl \-keep-tmp
+Keep the run's private temporary directory.
+.It Fl \-no-rewrite
+Don't let integrations rewrite the command line.
+.El
+.Sh INIT FLAGS
+.Bl -tag -width Ds
+.It Fl \-preset Ar name
+Include a preset (repeatable);
+.Cm none
+for no presets.
+.It Fl \-integration Ar name Ns = Ns Ar value
+Enable an integration (repeatable).
+.It Fl \-agents Ar list
+Without clausona: agent permissions for
+.Cm claude ,
+.Cm codex
+or
+.Cm none .
+.It Fl \-allow-write Ar path , Fl \-allow-domain Ar pattern , Fl \-allow-socket Ar path , Fl \-deny Ar path
+Additional entries (repeatable).
+.It Fl \-network Cm proxy | none | host
+Network mode.
+.It Fl \-workspace Ar dir
+Target workspace (default: Git root, otherwise the current directory).
+.It Fl \-global
+Create the global configuration
+.Pa ~/.config/sdbx/config.yaml
+instead of a project override.
+.It Fl \-output Ar file
+Different target file.
+If it lies inside the workspace,
+.Nm
+only loads it with
+.Fl \-config .
+.It Fl \-yes
+Accept all suggestions, ask nothing.
+.It Fl \-force
+Replace an existing file without asking; the old one is kept as
+.Pa <file>.bak .
+.It Fl \-accessible
+Accessible mode with line prompts; also via
+.Ev SDBX_ACCESSIBLE Ns =1 .
+.El
+.Sh CONFIGURATION
+The configuration lives outside the workspace so the sandbox cannot modify it.
+Sources are merged in this order; later sources win for single values,
+lists are combined:
+.Bl -enum -compact
+.It
+built-in defaults,
+.It
+global:
+.Pa ~/.config/sdbx/config.yaml ,
+.It
+enabled integrations,
+.It
+project override from
+.Pa ~/.config/sdbx/projects/ ,
+.It
+command-line flags.
+.El
+.Pp
+A project override is a file with any name in
+.Pa projects/
+containing
+.Ic project: Ar workspace-path .
+The file whose
+.Ic project:
+matches the current workspace applies; subdirectories inherit it.
+Files without
+.Ic project:
+are skipped and can serve as shared include fragments.
+If several files match, that is an error.
+.Pp
+In an override, relative paths in entries and
+.Li ${CONFIG_DIR}
+resolve against the workspace;
+.Ic include:
+paths are relative to the file itself.
+A
+.Pa sdbx.yaml
+or
+.Pa .sdbx.yaml
+in the workspace is not loaded, only reported, and stays write-protected.
+.Pp
+Example
+.Pa ~/.config/sdbx/projects/myapp.yaml :
+.Bd -literal -offset indent
+version: 1
+project: ~/Code/myapp
+include: [node, git-https]
+filesystem:
+  write: [~/.cache/my-tool]
+  deny: ["**/.env"]
+network:
+  allow: [api.example.com, "*.cdn.example.com"]
+integrations:
+  clausona: ro
+.Ed
+.Pp
+Built-in presets:
+.Cm git-https ,
+.Cm go ,
+.Cm node ,
+.Cm python ,
+.Cm rust .
+The full schema is in
+.Pa docs/spezifikation.md ,
+section 4.2 (German).
+.Sh PROTECTED PATHS
+The following paths stay write-protected even if a writable area covers
+them or names them exactly:
+.Bl -bullet -compact
+.It
+in the workspace and Git repositories:
+.Pa .git/hooks ,
+.Pa .git/config ,
+.Pa .git/info ,
+.Pa .gitmodules ,
+.Pa .envrc ,
+editor and agent settings
+.Pq Pa .vscode , .idea , .cursor , .claude/settings*.json , .mcp.json , ... ;
+.It
+in the home directory: shell rc files,
+.Pa ~/.gitconfig ,
+.Pa ~/.ssh/config ,
+autostart
+.Pq systemd user units, LaunchAgents ,
+.Pa ~/.config/sdbx/ ,
+.Pa ~/bin ,
+.Pa ~/.local/bin ,
+.Pa ~/.local/share/bin ;
+.It
+every directory in
+.Ev PATH
+outside the workspace.
+.El
+.Pp
+Protection can only be lifted with
+.Ic filesystem.unprotect
+(with a warning).
+Exception: an exactly matching
+.Ic write
+entry unlocks the bin directories in the home directory, also with a warning.
+Missing protected home directories below a writable area are created by
+.Nm
+before the start, so the sandbox cannot create and fill them itself.
+.Sh ENVIRONMENT
+.Ss Outside the sandbox
+.Bl -tag -width Ds
+.It Ev XDG_CONFIG_HOME
+If set, the configuration lives in
+.Pa $XDG_CONFIG_HOME/sdbx/
+.Pq on macOS too ;
+that directory is then protected as well.
+.It Ev SHELL
+Shell used by
+.Cm shell .
+.It Ev SDBX_ACCESSIBLE
+.Ql 1
+enables the accessible mode of
+.Cm init .
+.El
+.Ss Inside the sandbox
+By default only harmless variables are passed through
+.Pq Ev PATH , HOME , TERM , LANG , LC_* , ... ;
+variables such as
+.Ev *_TOKEN ,
+.Ev *_API_KEY ,
+.Ev AWS_*
+or
+.Ev SSH_AUTH_SOCK
+are always removed.
+Always set:
+.Bl -tag -width Ds
+.It Ev SDBX
+.Ql 1 .
+A nested
+.Nm
+uses this to detect that it already runs inside a sandbox.
+.It Ev SDBX_VERSION
+Version of
+.Nm .
+.It Ev SDBX_WORKSPACE
+Absolute path of the workspace.
+.It Ev TMPDIR
+Private temporary directory of this run.
+.It Ev HTTP_PROXY , Ev HTTPS_PROXY , Ev ALL_PROXY , Ev NO_PROXY
+(also lowercase) Proxy address
+.Pq HTTP or SOCKS5
+and localhost exceptions, if
+.Ic network.mode
+is
+.Cm proxy .
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ~/.config/sdbx/config.yaml
+Global configuration.
+.It Pa ~/.config/sdbx/projects/*.yaml
+Project overrides.
+.It Pa /tmp/sdbx-<run-id>/
+Linux: private
+.Pa /tmp
+of a run, deleted afterwards
+.Pq unless Fl \-keep-tmp .
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds -compact
+.It 0\(en123
+Exit code of the command, unchanged.
+.It 124
+Time limit reached.
+.It 125
+Configuration or policy error; nothing was started.
+.It 126
+The sandbox could not be set up
+.Pq missing platform capability, unenforceable rule .
+.It 127
+Command not found.
+.It 128+ Ns Ar n
+Command terminated by signal
+.Ar n .
+.El
+.Pp
+Codes 124\(en127 can also come from the command itself.
+In those cases
+.Nm
+always prints a line prefixed with
+.Ql sdbx:
+to stderr.
+.Sh EXAMPLES
+Start an agent in the sandbox:
+.Dl $ sdbx claude
+.Pp
+Run a build without network:
+.Dl $ sdbx run --no-network -- make test
+.Pp
+Create and check a project configuration interactively:
+.Dl $ sdbx init
+.Dl $ sdbx check
+.Pp
+Find out why an access is blocked:
+.Dl $ sdbx explain ~/.ssh/id_ed25519
+.Dl $ sdbx explain registry.npmjs.org:443
+.Pp
+Find the permissions a command is missing:
+.Dl $ sdbx learn -- npm install
+.Sh SEE ALSO
+.Xr bwrap 1 ,
+.Xr sandbox-exec 1 ,
+.Xr seccomp 2 ,
+.Xr landlock 7
+.Pp
+.Pa docs/spezifikation.md
+in the source tree contains the full specification (German).
+.Sh CAVEATS
+.Bl -bullet
+.It
+No protection against kernel exploits or side channels.
+.It
+Exfiltration through explicitly allowed domains remains possible.
+.It
+On Linux, globs, socket masking and protected paths only apply to paths
+that exist at start.
+If protected paths are created inside the sandbox,
+.Nm
+reports this after the run.
+.It
+Repositories created during a run are reported;
+their Git config can still be modified before the next run.
+.It
+In the restricted Linux mode
+.Pq Ic linux.backend : Cm landlock ,
+protected paths inside writable areas cannot be enforced;
+this mode requires
+.Fl \-degraded .
+.It
+The macOS keychain can only be allowed as a whole.
+.El

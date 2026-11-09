@@ -1,0 +1,22 @@
+# Python: pip und uv mit PyPI-Zugriff
+version: 1
+filesystem:
+  write:
+    - ~/.cache/pip
+    - ~/Library/Caches/pip
+    - ~/.cache/uv
+    - ~/Library/Caches/uv
+    - ~/.local/share/uv
+    - ~/.cache/pypoetry
+    - ~/Library/Caches/pypoetry
+network:
+  allow:
+    - pypi.org
+    - files.pythonhosted.org
+env:
+  passthrough:
+    - VIRTUAL_ENV
+    - PYENV_ROOT
+    - PYENV_VERSION
+    - UV_CACHE_DIR
+    - PIP_INDEX_URL
