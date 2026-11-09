@@ -106,15 +106,31 @@ print("GESTARTET", n)`)
 }
 
 func TestFailClosed(t *testing.T) {
-	e := newEnv(t, "version: 1\nlinux:\n  landlock: required\nlimits:\n  max_memory: 1G\n")
-	r := e.sh(`echo GESTARTET`)
-	if _, err := exec.LookPath("systemd-run"); err != nil || os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
-		if r.code != 126 || strings.Contains(r.out, "GESTARTET") {
-			t.Errorf("ohne cgroup muss max_memory den Start verhindern: %d %s", r.code, r.err)
-		}
-		e.config("version: 1\nlimits:\n  max_memory: 1G\n")
-		expect(t, e.run(nil, "run", "--degraded", "--", "sh", "-c", "echo GESTARTET"), "GESTARTET")
+	e := newEnv(t, "version: 1\nlimits:\n  max_memory: 1G\n")
+	toolDir := filepath.Join(e.ws, "bin")
+	if err := os.Mkdir(toolDir, 0o755); err != nil {
+		t.Fatal(err)
 	}
+	for _, tool := range []string{"bwrap", "sh"} {
+		path, err := exec.LookPath(tool)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(path, filepath.Join(toolDir, tool)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	extraEnv := []string{"PATH=" + toolDir}
+	r := e.sh("echo GESTARTET", extraEnv...)
+	if r.code != 126 || strings.Contains(r.out, "GESTARTET") {
+		t.Errorf("ohne cgroup muss max_memory den Start verhindern: %d %s", r.code, r.err)
+	}
+	expect(t, r, "limits.max_memory")
+	r = e.run(extraEnv, "run", "--degraded", "--", "sh", "-c", "echo GESTARTET")
+	if r.code != 0 {
+		t.Errorf("degraded muss den Start erlauben: %d %s", r.code, r.err)
+	}
+	expect(t, r, "GESTARTET")
 }
 
 // linux.backend: landlock (ohne bwrap) hält die Dateisystemgrenzen und meldet, was es nicht durchsetzen kann.
