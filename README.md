@@ -1,5 +1,16 @@
 # sdbx
 
+![Orange pixel mascot digging in a sandbox](assets/title.svg)
+
+![Status: Beta](https://img.shields.io/badge/Status-Beta-orange)
+[![CI](https://github.com/leuprechtroman/sdbx/actions/workflows/ci.yml/badge.svg)](https://github.com/leuprechtroman/sdbx/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/leuprechtroman/sdbx?logo=github&label=release)](https://github.com/leuprechtroman/sdbx/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+[![Go 1.23](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+![platform: macOS | Linux](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
+![arch: amd64 | arm64](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-lightgrey)
+[![docs: man page](https://img.shields.io/badge/docs-man%20page-4f46e5)](docs/sdbx.1)
+
 `sdbx` runs a command and all of its child processes in an **OS-level sandbox** – no VM, no container.
 
 The process uses your real tools and your home directory, but is restricted by kernel mechanisms:
